@@ -15,6 +15,7 @@ class FileUploader {
      * @param array $allowedExtensions 許可された拡張子
      */
     public function __construct($uploadDir = null, $maxFileSize = null, $allowedExtensions = null) {
+        // ?? : null合体演算子を使用して、引数がnullの場合はConfigクラスの設定を使用
         $this->uploadDir = $uploadDir ?? Config::$uploadDir;
         $this->maxFileSize = $maxFileSize ?? Config::$maxFileSize;
         $this->allowedExtensions = $allowedExtensions ?? Config::$allowedExtensions;
