@@ -30,6 +30,8 @@ class App {
     
     /**
      * 必要なクラスファイルを読み込み
+     * includeのようなもの
+     * https://qiita.com/siroisitaka/items/6c61f9243220036577e8
      */
     private function loadClasses() {
         require_once 'classes/Config.php';
@@ -69,6 +71,9 @@ class App {
     
     /**
      * POSTパラメータを安全に取得
+     * trim関数を使用して前後の空白を削除
+     * ユーザー側に表示しない場合はPOSTを使用
+     * 例: レシピの内容や画像のアップロードなど
      */
     public function getPostParam($key, $default = '') {
         return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
@@ -76,6 +81,8 @@ class App {
     
     /**
      * GETパラメータを安全に取得
+     * URL等ユーザー側に表示したい場合はGETを使用
+     * 文字列のみ
      */
     public function getGetParam($key, $default = '') {
         return isset($_GET[$key]) ? trim($_GET[$key]) : $default;
@@ -103,45 +110,48 @@ class App {
      * レシピの作成処理
      */
     public function handleRecipeCreate() {
-        if ($this->isPostRequest() && isset($_POST['action']) && $_POST['action'] === 'create_recipe') {
-            $title = $this->getPostParam('title');
-            $content = $this->getPostParam('content');
-            
-            if (empty($title)) {
-                $this->displayError('タイトルは必須です');
-                return false;
-            }
-            
-            // レシピを作成
-            $recipeId = $this->recipeManager->createRecipe($title, $content);
-            
-            // 画像のアップロード処理
-            $filename = $this->handleFileUpload();
-            if ($filename) {
-                $this->recipeManager->addRecipeImage($recipeId, $filename, $title, true);
-            }
-            
-            // タグの処理
-            $tags = $this->getPostParam('tags');
-            if (!empty($tags)) {
-                $tagArray = array_map('trim', explode(',', $tags));
-                $tagIds = [];
-                
-                foreach ($tagArray as $tagName) {
-                    if (!empty($tagName)) {
-                        $tagIds[] = $this->tagManager->getOrCreateTag($tagName);
-                    }
-                }
-                
-                if (!empty($tagIds)) {
-                    $this->tagManager->addTagsToRecipe($recipeId, $tagIds);
-                }
-            }
-            
-            $this->displayMessage('レシピを登録しました');
-            return true;
+        // POSTリクエストでない、またはアクションがcreate_recipeでない場合は早期リターン
+        if (!$this->isPostRequest() || !isset($_POST['action']) || $_POST['action'] !== 'create_recipe') {
+            return false;
         }
-        return false;
+        
+        $title = $this->getPostParam('title');
+        $content = $this->getPostParam('content');
+        
+        // タイトルが空の場合は早期リターン
+        if (empty($title)) {
+            $this->displayError('タイトルは必須です');
+            return false;
+        }
+        
+        // レシピを作成
+        $recipeId = $this->recipeManager->createRecipe($title, $content);
+        
+        // 画像のアップロード処理
+        $filename = $this->handleFileUpload();
+        if ($filename) {
+            $this->recipeManager->addRecipeImage($recipeId, $filename, $title, true);
+        }
+        
+        // タグの処理
+        $tags = $this->getPostParam('tags');
+        if (!empty($tags)) {
+            $tagArray = array_map('trim', explode(',', $tags));
+            $tagIds = [];
+            
+            foreach ($tagArray as $tagName) {
+                if (!empty($tagName)) {
+                    $tagIds[] = $this->tagManager->getOrCreateTag($tagName);
+                }
+            }
+            
+            if (!empty($tagIds)) {
+                $this->tagManager->addTagsToRecipe($recipeId, $tagIds);
+            }
+        }
+        
+        $this->displayMessage('レシピを登録しました');
+        return true;
     }
     
     /**
