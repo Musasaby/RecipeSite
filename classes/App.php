@@ -3,6 +3,17 @@
  * アプリケーションのメインロジックを管理するクラス
  */
 class App {
+    private const POST_PARAM_TITLE = 'title';
+    private const POST_PARAM_CONTENT = 'content';
+    private const POST_PARAM_TAGS = 'tags';
+    private const POST_PARAM_IMAGE = 'image';
+    private const POST_PARAM_ACTION = 'action';
+    private const POST_PARAM_RECIPE_ID = 'recipe_id';
+    private const POST_PARAM_CREATE_RECIPE = 'create_recipe';
+    private const POST_PARAM_DELETE_RECIPE = 'delete_recipe';
+    private const POST_PARAM_TAG_NAME = 'tag_name';
+
+
     private $db;
     private $recipeManager;
     private $tagManager;
@@ -73,7 +84,6 @@ class App {
      * POSTパラメータを安全に取得
      * trim関数を使用して前後の空白を削除
      * ユーザー側に表示しない場合はPOSTを使用
-     * 例: レシピの内容や画像のアップロードなど
      */
     public function getPostParam($key, $default = '') {
         return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
@@ -82,7 +92,6 @@ class App {
     /**
      * GETパラメータを安全に取得
      * URL等ユーザー側に表示したい場合はGETを使用
-     * 文字列のみ
      */
     public function getGetParam($key, $default = '') {
         return isset($_GET[$key]) ? trim($_GET[$key]) : $default;
@@ -115,7 +124,7 @@ class App {
             return false;
         }
         
-        $title = $this->getPostParam('title');
+        $title = $this->getPostParam(POST_PARAM_TITLE);
         $content = $this->getPostParam('content');
         
         // タイトルが空の場合は早期リターン
@@ -201,10 +210,10 @@ class App {
             $tags = $this->tagManager->getRecipeTags($recipeId);
             
             echo '<div class="recipe-card">';
-            echo '<h3>' . htmlspecialchars($recipe['title']) . '</h3>';
+            echo '<h3>' . htmlspecialchars($recipe[POST_PARAM_TITLE]) . '</h3>';
             
             if ($mainImage) {
-                echo '<div class="recipe-image"><img src="uploads/' . htmlspecialchars($mainImage) . '" alt="' . htmlspecialchars($recipe['title']) . '" style="max-width: 200px;"></div>';
+                echo '<div class="recipe-image"><img src="uploads/' . htmlspecialchars($mainImage) . '" alt="' . htmlspecialchars($recipe[POST_PARAM_TITLE]) . '" style="max-width: 200px;"></div>';
             }
             
             echo '<div class="recipe-content">' . htmlspecialchars(substr($recipe['content'], 0, 100)) . (strlen($recipe['content']) > 100 ? '...' : '') . '</div>';

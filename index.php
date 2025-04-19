@@ -128,6 +128,6 @@ $title = "レシピ管理システム";
         <h2>登録済みレシピ一覧</h2>
         <!-- レシピ一覧 -->
         <?php $app->displayRecipeList(); ?>
-    </div>ｆｆ
+    </div>
 </body>
 </html>
