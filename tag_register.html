@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タグ管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.delete {
+            background-color: #f44336;
+        }
+        button.delete:hover {
+            background-color: #d32f2f;
+        }
+        button.edit {
+            background-color: #2196F3;
+        }
+        button.edit:hover {
+            background-color: #0b7dda;
+        }
+        button.cancel {
+            background-color: #9e9e9e;
+        }
+        button.cancel:hover {
+            background-color: #757575;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .tag-list {
+            margin-top: 30px;
+        }
+        .tag-list h2 {
+            margin-bottom: 10px;
+        }
+        .tag-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tag-list th, .tag-list td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .tag-list th {
+            background-color: #f2f2f2;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        .modal-title {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>レシピタグ管理</h1>
+    
+    <div id="form-container">
+        <div class="form-group">
+            <label for="tag-input">新しいタグ名:</label>
+            <input type="text" id="tag-input" placeholder="例: ベジタリアン、スイーツ、ヘルシーなど">
+        </div>
+        
+        <button id="submit-button">タグを登録する</button>
+    </div>
+    
+    <div id="edit-form-container" style="display: none;">
+        <div class="form-group">
+            <label for="edit-tag-input">タグ名を編集:</label>
+            <input type="text" id="edit-tag-input">
+            <input type="hidden" id="edit-tag-id">
+        </div>
+        
+        <button id="update-button" class="edit">更新する</button>
+        <button id="cancel-button" class="cancel">キャンセル</button>
+    </div>
+    
+    <div id="message" class="message" style="display: none;"></div>
+    
+    <div class="tag-list">
+        <h2>登録済みタグ一覧</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>タグ名</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tag-list">
+                <!-- タグリストがここに表示される -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">タグの削除</h3>
+            <p>このタグを削除してもよろしいですか？</p>
+            <p id="delete-tag-name"></p>
+            <input type="hidden" id="delete-tag-id">
+            <div>
+                <button id="confirm-delete" class="delete">削除する</button>
+                <button id="cancel-delete" class="cancel">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ページ読み込み時に既存のタグを取得
+        document.addEventListener('DOMContentLoaded', fetchTags);
+        
+        // タグ登録ボタンのクリックイベント
+        document.getElementById('submit-button').addEventListener('click', addNewTag);
+        
+        // 更新ボタンのクリックイベント
+        document.getElementById('update-button').addEventListener('click', updateTag);
+        
+        // キャンセルボタンのクリックイベント
+        document.getElementById('cancel-button').addEventListener('click', cancelEdit);
+        
+        // 削除キャンセルボタンのクリックイベント
+        document.getElementById('cancel-delete').addEventListener('click', closeDeleteModal);
+        
+        // 削除確認ボタンのクリックイベント
+        document.getElementById('confirm-delete').addEventListener('click', deleteTag);
+        
+        // タグを追加する関数
+        function addNewTag() {
+            const tagName = document.getElementById('tag-input').value.trim();
+            
+            if (!tagName) {
+                showMessage('タグ名を入力してください', 'error');
+                return;
+            }
+            
+            // サーバーにPOSTリクエストを送信
+            fetch('api/create_tag.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tag_name: tagName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'タグが登録されました') {
+                    showMessage('タグ「' + tagName + '」が登録されました', 'success');
+                    document.getElementById('tag-input').value = '';
+                    fetchTags(); // タグ一覧を再取得
+                } else {
+                    showMessage('エラー: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('通信エラー: ' + error, 'error');
+            });
+        }
+        
+        // 既存のタグを取得する関数
+        function fetchTags() {
+            fetch('api/tags.php')
+            .then(response => response.json())
+            .then(data => {
+                const tagList = document.getElementById('tag-list');
+                tagList.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(tag => {
+                        const row = document.createElement('tr');
+                        
+                        // ID列
+                        const idCell = document.createElement('td');
+                        idCell.textContent = tag.tag_id;
+                        row.appendChild(idCell);
+                        
+                        // タグ名列
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = tag.tag_name;
+                        row.appendChild(nameCell);
+                        
+                        // 操作列
+                        const actionCell = document.createElement('td');
+                        actionCell.className = 'actions';
+                        
+                        // 編集ボタン
+                        const editButton = document.createElement('button');
+                        editButton.textContent = '編集';
+                        editButton.className = 'edit';
+                        editButton.onclick = () => showEditForm(tag.tag_id, tag.tag_name);
+                        actionCell.appendChild(editButton);
+                        
+                        // 削除ボタン
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = '削除';
+                        deleteButton.className = 'delete';
+                        deleteButton.onclick = () => showDeleteModal(tag.tag_id, tag.tag_name);
+                        actionCell.appendChild(deleteButton);
+                        
+                        row.appendChild(actionCell);
+                        
+                        tagList.appendChild(row);
+                    });
+                } else {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 3;
+                    cell.textContent = '登録されているタグはありません';
+                    row.appendChild(cell);
+                    tagList.appendChild(row);
+                }
+            })
+            .catch(error => {
+                console.error('タグ一覧の取得に失敗しました:', error);
+                
+                const tagList = document.getElementById('tag-list');
+                tagList.innerHTML = '';
+                
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = 'タグデータの取得に失敗しました。ページを再読み込みしてください。';
+                cell.style.color = 'red';
+                row.appendChild(cell);
+                tagList.appendChild(row);
+            });
+        }
+        
+        // 編集フォームを表示する関数
+        function showEditForm(tagId, tagName) {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('edit-form-container').style.display = 'block';
+            document.getElementById('edit-tag-input').value = tagName;
+            document.getElementById('edit-tag-id').value = tagId;
+        }
+        
+        // 編集をキャンセルする関数
+        function cancelEdit() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('edit-form-container').style.display = 'none';
+        }
+        
+        // タグを更新する関数
+        function updateTag() {
+            const tagId = document.getElementById('edit-tag-id').value;
+            const tagName = document.getElementById('edit-tag-input').value.trim();
+            
+            if (!tagName) {
+                showMessage('タグ名を入力してください', 'error');
+                return;
+            }
+            
+            // サーバーにPUTリクエストを送信
+            fetch('api/update_tag.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tag_id: tagId,
+                    tag_name: tagName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'タグが更新されました') {
+                    showMessage('タグを更新しました', 'success');
+                    cancelEdit(); // 編集フォームを閉じる
+                    fetchTags(); // タグ一覧を再取得
+                } else {
+                    showMessage('エラー: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('通信エラー: ' + error, 'error');
+            });
+        }
+        
+        // 削除確認モーダルを表示する関数
+        function showDeleteModal(tagId, tagName) {
+            document.getElementById('delete-tag-name').textContent = '「' + tagName + '」';
+            document.getElementById('delete-tag-id').value = tagId;
+            document.getElementById('delete-modal').style.display = 'block';
+        }
+        
+        // 削除確認モーダルを閉じる関数
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+        
+        // タグを削除する関数
+        function deleteTag() {
+            const tagId = document.getElementById('delete-tag-id').value;
+            
+            // サーバーにDELETEリクエストを送信
+            fetch('api/delete_tag.php', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tag_id: tagId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                closeDeleteModal(); // モーダルを閉じる
+                
+                if (data.message === 'タグが削除されました') {
+                    showMessage('タグを削除しました', 'success');
+                    fetchTags(); // タグ一覧を再取得
+                } else {
+                    showMessage('エラー: ' + (data.error || '不明なエラー'), 'error');
+                }
+            })
+            .catch(error => {
+                closeDeleteModal(); // モーダルを閉じる
+                showMessage('通信エラー: ' + error, 'error');
+            });
+        }
+        
+        // メッセージを表示する関数
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            
+            // 5秒後にメッセージを非表示にする
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

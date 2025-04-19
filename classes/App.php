@@ -1,0 +1,263 @@
+<?php
+/**
+ * アプリケーションのメインロジックを管理するクラス
+ */
+class App {
+    private $db;
+    private $recipeManager;
+    private $tagManager;
+    
+    /**
+     * コンストラクタ
+     */
+    public function __construct() {
+        // 必要なクラスファイルを読み込み
+        $this->loadClasses();
+        
+        try {
+            // データベース接続を取得
+            $this->db = DatabaseConnection::getInstance()->getConnection();
+            
+            // マネージャーインスタンスを初期化
+            $this->recipeManager = new RecipeManager($this->db);
+            $this->tagManager = new TagManager($this->db);
+            
+        } catch (Exception $e) {
+            $this->displayError($e->getMessage());
+            exit;
+        }
+    }
+    
+    /**
+     * 必要なクラスファイルを読み込み
+     */
+    private function loadClasses() {
+        require_once 'classes/Config.php';
+        require_once 'classes/DatabaseConnection.php';
+        require_once 'classes/FileUploader.php';
+        require_once 'classes/RecipeManager.php';
+        require_once 'classes/TagManager.php';
+    }
+    
+    /**
+     * エラーメッセージを表示
+     */
+    public function displayError($message) {
+        echo '<div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0;">エラー: ' . htmlspecialchars($message) . '</div>';
+    }
+    
+    /**
+     * メッセージを表示
+     */
+    public function displayMessage($message) {
+        echo '<div style="color: green; border: 1px solid green; padding: 10px; margin: 10px 0;">' . htmlspecialchars($message) . '</div>';
+    }
+    
+    /**
+     * POSTリクエストかどうかをチェック
+     */
+    public function isPostRequest() {
+        return $_SERVER['REQUEST_METHOD'] === 'POST';
+    }
+    
+    /**
+     * GETリクエストかどうかをチェック
+     */
+    public function isGetRequest() {
+        return $_SERVER['REQUEST_METHOD'] === 'GET';
+    }
+    
+    /**
+     * POSTパラメータを安全に取得
+     */
+    public function getPostParam($key, $default = '') {
+        return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
+    }
+    
+    /**
+     * GETパラメータを安全に取得
+     */
+    public function getGetParam($key, $default = '') {
+        return isset($_GET[$key]) ? trim($_GET[$key]) : $default;
+    }
+    
+    /**
+     * アップロードされた画像を処理
+     */
+    public function handleFileUpload() {
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $uploader = new FileUploader();
+            $result = $uploader->upload($_FILES['image']);
+            
+            if ($result['success']) {
+                return $result['filename'];
+            } else {
+                $this->displayError($result['message']);
+                return null;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * レシピの作成処理
+     */
+    public function handleRecipeCreate() {
+        if ($this->isPostRequest() && isset($_POST['action']) && $_POST['action'] === 'create_recipe') {
+            $title = $this->getPostParam('title');
+            $content = $this->getPostParam('content');
+            
+            if (empty($title)) {
+                $this->displayError('タイトルは必須です');
+                return false;
+            }
+            
+            // レシピを作成
+            $recipeId = $this->recipeManager->createRecipe($title, $content);
+            
+            // 画像のアップロード処理
+            $filename = $this->handleFileUpload();
+            if ($filename) {
+                $this->recipeManager->addRecipeImage($recipeId, $filename, $title, true);
+            }
+            
+            // タグの処理
+            $tags = $this->getPostParam('tags');
+            if (!empty($tags)) {
+                $tagArray = array_map('trim', explode(',', $tags));
+                $tagIds = [];
+                
+                foreach ($tagArray as $tagName) {
+                    if (!empty($tagName)) {
+                        $tagIds[] = $this->tagManager->getOrCreateTag($tagName);
+                    }
+                }
+                
+                if (!empty($tagIds)) {
+                    $this->tagManager->addTagsToRecipe($recipeId, $tagIds);
+                }
+            }
+            
+            $this->displayMessage('レシピを登録しました');
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * レシピの削除処理
+     */
+    public function handleRecipeDelete() {
+        if ($this->isPostRequest() && isset($_POST['action']) && $_POST['action'] === 'delete_recipe') {
+            $recipeId = $this->getPostParam('recipe_id');
+            
+            if (empty($recipeId)) {
+                $this->displayError('レシピIDが指定されていません');
+                return false;
+            }
+            
+            // レシピを削除（外部キー制約により関連するタグと画像も削除される）
+            if ($this->recipeManager->deleteRecipe($recipeId)) {
+                $this->displayMessage('レシピを削除しました');
+                return true;
+            } else {
+                $this->displayError('レシピの削除に失敗しました');
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * レシピ一覧を取得して表示
+     */
+    public function displayRecipeList() {
+        $recipes = $this->recipeManager->getRecipes();
+        
+        if (empty($recipes)) {
+            echo '<p>登録されているレシピはありません。</p>';
+            return;
+        }
+        
+        echo '<div class="recipe-list">';
+        foreach ($recipes as $recipe) {
+            $recipeId = $recipe['id'];
+            
+            // レシピの画像を取得
+            $images = $this->recipeManager->getRecipeImages($recipeId);
+            $mainImage = !empty($images) ? $images[0]['filename'] : null;
+            
+            // レシピのタグを取得
+            $tags = $this->tagManager->getRecipeTags($recipeId);
+            
+            echo '<div class="recipe-card">';
+            echo '<h3>' . htmlspecialchars($recipe['title']) . '</h3>';
+            
+            if ($mainImage) {
+                echo '<div class="recipe-image"><img src="uploads/' . htmlspecialchars($mainImage) . '" alt="' . htmlspecialchars($recipe['title']) . '" style="max-width: 200px;"></div>';
+            }
+            
+            echo '<div class="recipe-content">' . htmlspecialchars(substr($recipe['content'], 0, 100)) . (strlen($recipe['content']) > 100 ? '...' : '') . '</div>';
+            
+            if (!empty($tags)) {
+                echo '<div class="recipe-tags">タグ: ';
+                foreach ($tags as $index => $tag) {
+                    echo htmlspecialchars($tag['name']);
+                    if ($index < count($tags) - 1) {
+                        echo ', ';
+                    }
+                }
+                echo '</div>';
+            }
+            
+            echo '<div class="recipe-actions">';
+            echo '<form method="post" style="display: inline;">';
+            echo '<input type="hidden" name="action" value="delete_recipe">';
+            echo '<input type="hidden" name="recipe_id" value="' . $recipeId . '">';
+            echo '<button type="submit" onclick="return confirm(\'このレシピを削除してもよろしいですか？\');">削除</button>';
+            echo '</form>';
+            echo '</div>';
+            
+            echo '</div>';
+        }
+        echo '</div>';
+    }
+    
+    /**
+     * レシピ登録フォームを表示
+     */
+    public function displayRecipeForm() {
+        ?>
+        <div class="recipe-form">
+            <h2>新しいレシピを登録</h2>
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="create_recipe">
+                
+                <div class="form-group">
+                    <label for="title">タイトル:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="content">内容:</label>
+                    <textarea id="content" name="content" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="image">画像:</label>
+                    <input type="file" id="image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tags">タグ (カンマ区切り):</label>
+                    <input type="text" id="tags" name="tags" placeholder="例: パスタ, イタリアン, 簡単">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit">レシピを登録</button>
+                </div>
+            </form>
+        </div>
+        <?php
+    }
+}

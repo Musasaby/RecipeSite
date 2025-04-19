@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レシピアプリ</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { padding-top: 20px; }
+        .recipe-card { margin-bottom: 20px; }
+        .tag { 
+            display: inline-block;
+            background-color: #f0f0f0;
+            padding: 2px 8px;
+            margin-right: 5px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+        #recipe-detail { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">レシピアプリ</h1>
+        
+        <!-- タブナビゲーション -->
+        <ul class="nav nav-tabs mb-4" id="app-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#recipes-list">レシピ一覧</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#recipe-form">レシピ登録</a>
+            </li>
+        </ul>
+        
+        <!-- タブコンテンツ -->
+        <div class="tab-content">
+            <!-- レシピ一覧タブ -->
+            <div class="tab-pane fade show active" id="recipes-list">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <form id="search-form" class="form-inline">
+                            <input type="text" class="form-control mr-2" id="search-input" placeholder="レシピ検索...">
+                            <select class="form-control mr-2" id="tag-filter">
+                                <option value="">タグで絞り込み</option>
+                                <!-- タグ一覧がPHPで挿入されます -->
+                            </select>
+                            <button type="submit" class="btn btn-primary">検索</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <div class="form-inline justify-content-end">
+                            <label class="mr-2">並び替え:</label>
+                            <select class="form-control" id="sort-select">
+                                <option value="recipe_name-asc">名前（昇順）</option>
+                                <option value="recipe_name-desc">名前（降順）</option>
+                                <option value="cook_time-asc">調理時間（短い順）</option>
+                                <option value="cook_time-desc">調理時間（長い順）</option>
+                                <option value="created_at-desc">新着順</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="recipes-container" class="row">
+                    <!-- レシピカードがPHPで挿入されます -->
+                </div>
+                
+                <!-- レシピ詳細モーダル -->
+                <div class="modal fade" id="recipe-detail-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="recipe-detail-title"></h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body" id="recipe-detail-content">
+                                <!-- レシピ詳細がPHPで挿入されます -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">閉じる</button>
+                                <button type="button" class="btn btn-primary edit-recipe">編集</button>
+                                <button type="button" class="btn btn-danger delete-recipe">削除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- レシピ登録タブ -->
+            <div class="tab-pane fade" id="recipe-form">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>レシピ新規登録</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="recipe-form">
+                            <input type="hidden" id="recipe-id">
+                            <div class="form-group">
+                                <label for="recipe-name">レシピ名</label>
+                                <input type="text" class="form-control" id="recipe-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cook-time">調理時間（分）</label>
+                                <input type="number" class="form-control" id="cook-time" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ingredients">材料</label>
+                                <textarea class="form-control" id="ingredients" rows="3" required></textarea>
+                                <small class="form-text text-muted">材料と量を1行ずつ入力してください</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="description">説明</label>
+                                <textarea class="form-control" id="description" rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="steps">手順</label>
+                                <textarea class="form-control" id="steps" rows="5" required></textarea>
+                                <small class="form-text text-muted">各ステップを1行ずつ入力してください</small>
+                            </div>
+                            <div class="form-group">
+                                <label>タグ選択</label>
+                                <div id="tags-container" class="border p-3 rounded">
+                                    <!-- タグのチェックボックスがJavaScriptで挿入されます -->
+                                    <div class="text-center">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        読み込み中...
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">保存</button>
+                            <button type="button" class="btn btn-secondary" id="reset-form">リセット</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHP APIエンドポイントを作成します -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
