@@ -11,7 +11,6 @@ class App {
     private const POST_PARAM_RECIPE_ID = 'recipe_id';
     private const POST_PARAM_CREATE_RECIPE = 'create_recipe';
     private const POST_PARAM_DELETE_RECIPE = 'delete_recipe';
-    private const POST_PARAM_TAG_NAME = 'tag_name';
 
 
     private $db;
@@ -101,9 +100,9 @@ class App {
      * アップロードされた画像を処理
      */
     public function handleFileUpload() {
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        if (isset($_FILES[self::POST_PARAM_IMAGE]) && $_FILES[self::POST_PARAM_IMAGE]['error'] === UPLOAD_ERR_OK) {
             $uploader = new FileUploader();
-            $result = $uploader->upload($_FILES['image']);
+            $result = $uploader->upload($_FILES[self::POST_PARAM_IMAGE]);
             
             if ($result['success']) {
                 return $result['filename'];
@@ -120,12 +119,12 @@ class App {
      */
     public function handleRecipeCreate() {
         // POSTリクエストでない、またはアクションがcreate_recipeでない場合は早期リターン
-        if (!$this->isPostRequest() || !isset($_POST['action']) || $_POST['action'] !== 'create_recipe') {
+        if (!$this->isPostRequest() || !isset($_POST[self::POST_PARAM_ACTION]) || $_POST[self::POST_PARAM_ACTION] !== self::POST_PARAM_CREATE_RECIPE) {
             return false;
         }
         
-        $title = $this->getPostParam(POST_PARAM_TITLE);
-        $content = $this->getPostParam('content');
+        $title = $this->getPostParam(self::POST_PARAM_TITLE);
+        $content = $this->getPostParam(self::POST_PARAM_CONTENT);
         
         // タイトルが空の場合は早期リターン
         if (empty($title)) {
@@ -143,7 +142,7 @@ class App {
         }
         
         // タグの処理
-        $tags = $this->getPostParam('tags');
+        $tags = $this->getPostParam(self::POST_PARAM_TAGS);
         if (!empty($tags)) {
             $tagArray = array_map('trim', explode(',', $tags));
             $tagIds = [];
@@ -167,8 +166,8 @@ class App {
      * レシピの削除処理
      */
     public function handleRecipeDelete() {
-        if ($this->isPostRequest() && isset($_POST['action']) && $_POST['action'] === 'delete_recipe') {
-            $recipeId = $this->getPostParam('recipe_id');
+        if ($this->isPostRequest() && isset($_POST[self::POST_PARAM_ACTION]) && $_POST[self::POST_PARAM_ACTION] === self::POST_PARAM_DELETE_RECIPE) {
+            $recipeId = $this->getPostParam(self::POST_PARAM_RECIPE_ID);
             
             if (empty($recipeId)) {
                 $this->displayError('レシピIDが指定されていません');
@@ -210,13 +209,13 @@ class App {
             $tags = $this->tagManager->getRecipeTags($recipeId);
             
             echo '<div class="recipe-card">';
-            echo '<h3>' . htmlspecialchars($recipe[POST_PARAM_TITLE]) . '</h3>';
+            echo '<h3>' . htmlspecialchars($recipe[self::POST_PARAM_TITLE]) . '</h3>';
             
             if ($mainImage) {
-                echo '<div class="recipe-image"><img src="uploads/' . htmlspecialchars($mainImage) . '" alt="' . htmlspecialchars($recipe[POST_PARAM_TITLE]) . '" style="max-width: 200px;"></div>';
+                echo '<div class="recipe-image"><img src="uploads/' . htmlspecialchars($mainImage) . '" alt="' . htmlspecialchars($recipe[self::POST_PARAM_TITLE]) . '" style="max-width: 200px;"></div>';
             }
             
-            echo '<div class="recipe-content">' . htmlspecialchars(substr($recipe['content'], 0, 100)) . (strlen($recipe['content']) > 100 ? '...' : '') . '</div>';
+            echo '<div class="recipe-content">' . htmlspecialchars(substr($recipe[self::POST_PARAM_CONTENT], 0, 100)) . (strlen($recipe[self::POST_PARAM_CONTENT]) > 100 ? '...' : '') . '</div>';
             
             if (!empty($tags)) {
                 echo '<div class="recipe-tags">タグ: ';
