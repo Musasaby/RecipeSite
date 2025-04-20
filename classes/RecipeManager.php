@@ -20,7 +20,13 @@ class RecipeManager {
      */
     public function getRecipes($id = null) {
         if ($id !== null) {
-            // 指定IDのレシピを取得
+            // 指定IDのレシピすべての列の情報を取得
+            //SELECT:取得したい列
+            //FROM:取得したいテーブル名
+            //WHERE:条件
+            //ORDER BY:並び替えの条件
+            //DESC:降順
+            //ASC:昇順
             $stmt = $this->db->prepare("SELECT * FROM recipes WHERE id = ?");
             $stmt->execute([$id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);

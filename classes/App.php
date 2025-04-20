@@ -119,6 +119,7 @@ class App {
      */
     public function handleRecipeCreate() {
         // POSTリクエストでない、またはアクションがcreate_recipeでない場合は早期リターン
+        //フォームから送信されたとき、actionがcreate_recipeでない場合は早期リターン
         if (!$this->isPostRequest() || !isset($_POST[self::POST_PARAM_ACTION]) || $_POST[self::POST_PARAM_ACTION] !== self::POST_PARAM_CREATE_RECIPE) {
             return false;
         }
