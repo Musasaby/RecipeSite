@@ -1,0 +1,63 @@
+/* 
+* レシピサイト用スタイルシート
+*/
+
+/* レシピカードのスタイル */
+.recipe-card {
+  transition: transform 0.2s;
+}
+
+.recipe-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.recipe-card .card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+.no-image {
+  background-color: #f8f9fa;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+/* タグスタイル */
+.recipe-tag {
+  font-size: 0.8rem;
+  margin-right: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+/* フォームスタイル */
+.form-section {
+  border-radius: 0.25rem;
+}
+
+/* ページヘッダー */
+.page-header {
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* アラート */
+.alert-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1050;
+  width: 300px;
+}
+
+/* フッター */
+.footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}

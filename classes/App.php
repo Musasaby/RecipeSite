@@ -11,7 +11,11 @@ class App {
     private const POST_PARAM_RECIPE_ID = 'recipe_id';
     private const POST_PARAM_CREATE_RECIPE = 'create_recipe';
     private const POST_PARAM_DELETE_RECIPE = 'delete_recipe';
-
+    
+    // ページ表示用の定数
+    private const PAGE_PARAM = 'page';
+    private const PAGE_HOME = 'home';
+    private const PAGE_CREATE = 'create';
 
     private $db;
     private $recipeManager;
@@ -198,98 +202,44 @@ class App {
      */
     public function displayRecipeList() {
         $recipes = $this->recipeManager->getRecipes();
-        
-        if (empty($recipes)) {
-            echo '<div class="alert alert-info">登録されているレシピはありません。</div>';
-            return;
-        }
-        
-        echo '<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">';
-        foreach ($recipes as $recipe) {
-            $recipeId = $recipe['id'];
-            
-            // レシピの画像を取得
-            $images = $this->recipeManager->getRecipeImages($recipeId);
-            $mainImage = !empty($images) ? $images[0]['filename'] : null;
-            
-            // レシピのタグを取得
-            $tags = $this->tagManager->getRecipeTags($recipeId);
-            
-            echo '<div class="col">';
-            echo '<div class="card h-100">';
-            
-            if ($mainImage) {
-                echo '<img src="uploads/' . htmlspecialchars($mainImage) . '" class="card-img-top" alt="' . htmlspecialchars($recipe[self::POST_PARAM_TITLE]) . '">';
-            } else {
-                echo '<div class="card-img-top bg-light text-center py-5">画像なし</div>';
-            }
-            
-            echo '<div class="card-body">';
-            echo '<h5 class="card-title">' . htmlspecialchars($recipe[self::POST_PARAM_TITLE]) . '</h5>';
-            echo '<p class="card-text">' . htmlspecialchars(substr($recipe[self::POST_PARAM_CONTENT], 0, 100)) . (strlen($recipe[self::POST_PARAM_CONTENT]) > 100 ? '...' : '') . '</p>';
-            
-            if (!empty($tags)) {
-                echo '<div class="mb-2">';
-                foreach ($tags as $tag) {
-                    echo '<span class="badge bg-secondary me-1">' . htmlspecialchars($tag['name']) . '</span>';
-                }
-                echo '</div>';
-            }
-            
-            echo '</div>';
-            echo '<div class="card-footer text-end">';
-            echo '<form method="post">';
-            echo '<input type="hidden" name="action" value="delete_recipe">';
-            echo '<input type="hidden" name="recipe_id" value="' . $recipeId . '">';
-            echo '<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'このレシピを削除してもよろしいですか？\');">削除</button>';
-            echo '</form>';
-            echo '</div>';
-            
-            echo '</div>';
-            echo '</div>';
-        }
-        echo '</div>';
+        require 'templates/recipe_list.php';
     }
     
     /**
      * レシピ登録フォームを表示
      */
     public function displayRecipeForm() {
-        ?>
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>新しいレシピを登録</h2>
-            </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="create_recipe">
-                    
-                    <div class="mb-3">
-                        <label for="title" class="form-label">タイトル:</label>
-                        <input type="text" id="title" name="title" class="form-control" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="content" class="form-label">内容:</label>
-                        <textarea id="content" name="content" rows="4" class="form-control"></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="image" class="form-label">画像:</label>
-                        <input type="file" id="image" name="image" class="form-control" accept="image/jpeg,image/jpg,image/png,image/gif">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="tags" class="form-label">タグ (カンマ区切り):</label>
-                        <input type="text" id="tags" name="tags" class="form-control" placeholder="例: パスタ, イタリアン, 簡単">
-                    </div>
-                    
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success">レシピを登録</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <?php
+        require 'templates/recipe_form.php';
+    }
+    
+    /**
+     * 現在のページを取得
+     */
+    public function getCurrentPage() {
+        return $this->getGetParam(self::PAGE_PARAM, self::PAGE_HOME);
+    }
+    
+    /**
+     * ページのURLを生成
+     */
+    public function getPageUrl($page) {
+        return 'index.php?' . self::PAGE_PARAM . '=' . $page;
+    }
+    
+    /**
+     * コンテンツを表示
+     */
+    public function displayContent() {
+        $page = $this->getCurrentPage();
+        
+        switch ($page) {
+            case self::PAGE_CREATE:
+                $this->displayRecipeForm();
+                break;
+            case self::PAGE_HOME:
+            default:
+                $this->displayRecipeList();
+                break;
+        }
     }
 }
